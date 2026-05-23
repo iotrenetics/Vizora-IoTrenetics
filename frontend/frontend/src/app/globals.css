@@ -4,7 +4,8 @@
 @tailwind utilities;
 
 /* ── Dark Theme (default) ────────────────── */
-:root {
+:root,
+[data-theme="dark"] {
   --bg: #0a0b0f;
   --sidebar-bg: #0d0e14;
   --nav-bg: rgba(13,14,20,0.92);
@@ -18,6 +19,19 @@
   --text-primary: #f0f1f5;
   --text-muted: #5a5f7a;
   color-scheme: dark;
+
+  --gf-bg:             #111217;
+  --gf-sidebar:        #181b1f;
+  --gf-topnav:         #181b1f;
+  --gf-surface:        #1f2128;
+  --gf-hover:          #2a2d36;
+  --gf-active-bg:      #2a2d36;
+  --gf-border:         #2c2f3a;
+  --gf-input:          #141619;
+  --gf-text:           #d0d4de;
+  --gf-text-secondary: #9fa7b3;
+  --gf-text-muted:     #5c6270;
+  --gf-accent:         #3d71e8;
 }
 
 /* ── Light Theme ─────────────────────────── */
@@ -35,6 +49,19 @@
   --text-primary: #12141f;
   --text-muted: #8b92b3;
   color-scheme: light;
+
+  --gf-bg:             #f4f5f5;
+  --gf-sidebar:        #ffffff;
+  --gf-topnav:         #ffffff;
+  --gf-surface:        #ffffff;
+  --gf-hover:          #f0f4fa;
+  --gf-active-bg:      #e6ecf9;
+  --gf-border:         #dde1e7;
+  --gf-input:          #f4f5f5;
+  --gf-text:           #1f2128;
+  --gf-text-secondary: #46505f;
+  --gf-text-muted:     #9fa7b3;
+  --gf-accent:         #3165cc;
 }
 
 /* ── Base ────────────────────────────────── */
@@ -68,4 +95,20 @@ html, body {
 .react-grid-item > .react-resizable-handle:hover::after {
   border-color: var(--accent) !important;
   opacity: 1;
+}
+
+/* ── Grafana icon button ─────────────────── */
+.gf-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  color: var(--gf-text-muted);
+  transition: color 0.15s, background 0.15s;
+}
+.gf-icon-btn:hover {
+  color: var(--gf-text);
+  background: var(--gf-hover);
 }

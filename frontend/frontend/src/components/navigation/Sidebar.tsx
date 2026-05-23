@@ -1,207 +1,131 @@
 'use client';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, BarChart3, Activity, ScrollText,
-  Bell, Cpu, Puzzle, Settings, ChevronRight,
-  ChevronLeft, Zap, Wifi, Users, Database,
-  GitBranch, Shield, Clock
+  Bell, Cpu, Puzzle, Settings, ChevronRight, ChevronDown,
+  Zap, Wifi, Users, Database, GitBranch, Shield, Clock,
+  Bookmark, Star, Compass, TrendingUp, PanelLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSidebarStore, useAlertsStore } from '@/store';
+import { useAlertsStore } from '@/store';
 
-const NAV_SECTIONS = [
+/* ─── Nav tree (mirrors Grafana's structure) ─── */
+const NAV_ITEMS = [
+  { id: 'home',       label: 'Home',       icon: LayoutDashboard, href: '/' },
+  { id: 'bookmarks',  label: 'Bookmarks',  icon: Bookmark,        href: '/bookmarks',  collapsible: true },
+  { id: 'starred',    label: 'Starred',    icon: Star,            href: '/starred',    collapsible: true },
+  { id: 'dashboards', label: 'Dashboards', icon: LayoutDashboard, href: '/dashboards', collapsible: true },
+  { id: 'explore',    label: 'Explore',    icon: Compass,         href: '/explore' },
   {
-    label: 'Observe',
-    items: [
-      { id: 'dashboards', label: 'Dashboards', icon: LayoutDashboard, href: '/' },
-      { id: 'metrics', label: 'Metrics', icon: Activity, href: '/metrics' },
-      { id: 'logs', label: 'Logs', icon: ScrollText, href: '/logs' },
-      { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
-    ],
-  },
-  {
-    label: 'Monitor',
-    items: [
-      { id: 'alerts', label: 'Alerting', icon: Bell, href: '/alerts' },
-      { id: 'devices', label: 'Devices', icon: Cpu, href: '/devices' },
-      { id: 'uptime', label: 'Uptime', icon: Clock, href: '/uptime' },
-    ],
-  },
-  {
-    label: 'Configure',
-    items: [
-      { id: 'datasources', label: 'Data Sources', icon: Database, href: '/datasources' },
-      { id: 'plugins', label: 'Plugins', icon: Puzzle, href: '/plugins' },
-      { id: 'team', label: 'Team', icon: Users, href: '/team' },
-      { id: 'access', label: 'Access Control', icon: Shield, href: '/access' },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { id: 'api', label: 'API', icon: GitBranch, href: '/api-explorer' },
-      { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
+    id: 'drilldown', label: 'Drilldown', icon: TrendingUp, href: '/drilldown',
+    collapsible: true,
+    children: [
+      { id: 'metrics', label: 'Metrics', href: '/metrics' },
+      { id: 'logs',    label: 'Logs',    href: '/logs' },
+      { id: 'traces',  label: 'Traces',  href: '/traces' },
+      { id: 'profiles',label: 'Profiles',href: '/profiles' },
     ],
   },
 ];
 
+const BOTTOM_ITEMS = [
+  { id: 'alerts',   label: 'Alerting',    icon: Bell,      href: '/alerts',      collapsible: true },
+  { id: 'connections', label: 'Connections', icon: Wifi,   href: '/connections', collapsible: true },
+  { id: 'admin',    label: 'Administration', icon: Shield, href: '/admin',       collapsible: true },
+];
+
 export function Sidebar() {
-  const { collapsed, toggle } = useSidebarStore();
   const { alerts } = useAlertsStore();
   const pathname = usePathname();
   const firingCount = alerts.filter(a => a.state === 'firing').length;
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ drilldown: true });
 
-  return (
-    <motion.aside
-      animate={{ width: collapsed ? 64 : 220 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="fixed left-0 top-0 h-full z-40 flex flex-col bg-[var(--sidebar-bg)] border-r border-[var(--border)] overflow-hidden"
-    >
-      {/* Logo */}
-      <div className="h-14 flex items-center justify-between px-3 border-b border-[var(--border)] shrink-0">
-        <AnimatePresence>
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center gap-2 overflow-hidden"
-            >
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
-                <Zap size={14} className="text-white" />
-              </div>
-              <span className="font-bold text-[var(--text-primary)] text-base tracking-tight whitespace-nowrap">
-                Vizora
-              </span>
-            </motion.div>
+  const toggleExpand = (id: string) => setExpanded(p => ({ ...p, [id]: !p[id] }));
+
+  const renderItem = (item: typeof NAV_ITEMS[0] & { children?: { id: string; label: string; href: string }[] }) => {
+    const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+    const isOpen = expanded[item.id];
+    const hasChildren = item.children && item.children.length > 0;
+    const badge = item.id === 'alerts' && firingCount > 0 ? firingCount : undefined;
+
+    return (
+      <div key={item.id}>
+        <div
+          className={cn(
+            'flex items-center justify-between px-2 py-[5px] mx-1 rounded cursor-pointer select-none group',
+            'text-[13px] text-[var(--gf-text-secondary)] hover:text-[var(--gf-text)] hover:bg-[var(--gf-hover)]',
+            isActive && 'bg-[var(--gf-active-bg)] text-[var(--gf-text)] font-medium'
           )}
-        </AnimatePresence>
+          onClick={() => hasChildren || item.collapsible ? toggleExpand(item.id) : null}
+        >
+          <Link href={item.href} className="flex items-center gap-2.5 flex-1 min-w-0" onClick={e => hasChildren && e.preventDefault()}>
+            <item.icon size={16} className="shrink-0 opacity-80" />
+            <span className="truncate">{item.label}</span>
+            {badge && (
+              <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full leading-none">
+                {badge}
+              </span>
+            )}
+          </Link>
+          {(hasChildren || item.collapsible) && (
+            <ChevronDown
+              size={13}
+              className={cn('shrink-0 text-[var(--gf-text-muted)] transition-transform', isOpen && 'rotate-180')}
+            />
+          )}
+          {!hasChildren && !item.collapsible && isActive && (
+            <div className="w-0.5 h-4 bg-[var(--gf-accent)] rounded-full absolute right-0" />
+          )}
+        </div>
 
-        {collapsed && (
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center mx-auto">
-            <Zap size={14} className="text-white" />
-          </div>
-        )}
-
-        {!collapsed && (
-          <button
-            onClick={toggle}
-            className="w-6 h-6 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)] transition-all"
-          >
-            <ChevronLeft size={14} />
-          </button>
-        )}
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-4 scrollbar-thin">
-        {NAV_SECTIONS.map(section => (
-          <div key={section.label}>
-            <AnimatePresence>
-              {!collapsed && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest px-2 mb-1"
-                >
-                  {section.label}
-                </motion.p>
-              )}
-            </AnimatePresence>
-
-            {section.items.map(item => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-              const badge = item.id === 'alerts' && firingCount > 0 ? firingCount : undefined;
-
+        {hasChildren && isOpen && (
+          <div className="ml-6 border-l border-[var(--gf-border)] pl-0 mt-0.5 mb-1">
+            {item.children!.map(child => {
+              const childActive = pathname === child.href;
               return (
-                <Link key={item.id} href={item.href}>
-                  <motion.div
-                    whileHover={{ x: collapsed ? 0 : 2 }}
-                    className={cn(
-                      'flex items-center gap-3 px-2 py-2 rounded-lg transition-all duration-150 group relative',
-                      isActive
-                        ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'
-                    )}
-                  >
-                    <div className="relative shrink-0">
-                      <Icon size={16} />
-                      {badge && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                          {badge}
-                        </span>
-                      )}
-                    </div>
-
-                    <AnimatePresence>
-                      {!collapsed && (
-                        <motion.span
-                          initial={{ opacity: 0, x: -6 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -6 }}
-                          transition={{ duration: 0.12 }}
-                          className="text-xs font-medium whitespace-nowrap"
-                        >
-                          {item.label}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-
-                    {isActive && (
-                      <motion.div
-                        layoutId="sidebar-indicator"
-                        className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-[var(--accent)] rounded-full"
-                      />
-                    )}
-
-                    {/* Tooltip for collapsed */}
-                    {collapsed && (
-                      <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--surface-3)] border border-[var(--border)] rounded-md text-xs text-[var(--text-primary)] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                        {item.label}
-                      </div>
-                    )}
-                  </motion.div>
+                <Link key={child.id} href={child.href}>
+                  <div className={cn(
+                    'px-3 py-[5px] text-[13px] rounded mx-1 cursor-pointer',
+                    childActive
+                      ? 'text-[var(--gf-text)] font-medium'
+                      : 'text-[var(--gf-text-secondary)] hover:text-[var(--gf-text)] hover:bg-[var(--gf-hover)]'
+                  )}>
+                    {child.label}
+                  </div>
                 </Link>
               );
             })}
           </div>
-        ))}
-      </nav>
+        )}
+      </div>
+    );
+  };
 
-      {/* Status Indicator */}
-      <div className="p-3 border-t border-[var(--border)]">
-        <div className={cn('flex items-center gap-2', collapsed && 'justify-center')}>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Wifi size={12} className="text-emerald-400" />
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          </div>
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.span
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="text-[10px] text-emerald-400 font-medium whitespace-nowrap"
-              >
-                Live · Connected
-              </motion.span>
-            )}
-          </AnimatePresence>
+  return (
+    <aside className="fixed left-0 top-0 h-full w-[200px] z-40 flex flex-col bg-[var(--gf-sidebar)] border-r border-[var(--gf-border)]">
+      {/* Logo */}
+      <div className="h-[41px] flex items-center gap-2 px-3 border-b border-[var(--gf-border)] shrink-0">
+        <div className="w-6 h-6 rounded bg-gradient-to-br from-orange-400 to-yellow-300 flex items-center justify-center">
+          <Zap size={13} className="text-white" />
         </div>
+        <span className="font-semibold text-[var(--gf-text)] text-sm tracking-tight">Vizora</span>
+        <button className="ml-auto text-[var(--gf-text-muted)] hover:text-[var(--gf-text)]">
+          <PanelLeft size={15} />
+        </button>
       </div>
 
-      {/* Expand button when collapsed */}
-      {collapsed && (
-        <button
-          onClick={toggle}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[var(--surface-3)] border border-[var(--border)] rounded-full flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all z-50"
-        >
-          <ChevronRight size={12} />
-        </button>
-      )}
-    </motion.aside>
+      {/* Top nav items */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1.5 scrollbar-thin space-y-0.5">
+        {NAV_ITEMS.map(renderItem)}
+      </nav>
+
+      {/* Bottom nav items */}
+      <div className="border-t border-[var(--gf-border)] py-1.5 space-y-0.5">
+        {BOTTOM_ITEMS.map(renderItem)}
+      </div>
+    </aside>
   );
 }
