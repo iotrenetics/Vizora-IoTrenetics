@@ -1,181 +1,412 @@
 'use client';
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
-  ChevronDown, Zap, PanelLeft,
-  Home, Bookmark, Star, LayoutDashboard,
-  Compass, TrendingUp, Bell, Database,
-  Shield, Settings, Users, Plug,
+  Home, Bookmark, Star, LayoutDashboard, Compass,
+  BarChart3, Bell, Database, Settings, Zap,
+  ChevronDown, ChevronRight, ChevronLeft,
+  Activity, ScrollText, GitMerge, Users,
+  Shield, Puzzle, GitBranch, Cpu, ArrowLeft,
+  Wifi, TrendingUp,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAlertsStore } from '@/store';
+import { useSidebarStore, useAlertsStore } from '@/store';
 
-type NavChild = { id: string; label: string; href: string };
-type NavItem = {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-  href: string;
-  collapsible?: boolean;
-  children?: NavChild[];
-};
-
-const TOP_ITEMS: NavItem[] = [
-  { id: 'home',       label: 'Home',       icon: Home,            href: '/' },
-  { id: 'bookmarks',  label: 'Bookmarks',  icon: Bookmark,        href: '/bookmarks',  collapsible: true },
-  { id: 'starred',    label: 'Starred',    icon: Star,            href: '/starred',    collapsible: true },
+/* ══════════════════════════════════════════════
+   NAV STRUCTURE
+══════════════════════════════════════════════ */
+const NAV = [
   {
-    id: 'dashboards', label: 'Dashboards', icon: LayoutDashboard, href: '/dashboards',
-    collapsible: true,
+    id: 'home', label: 'Home', icon: Home,
+    href: '/', solo: true,
+  },
+  {
+    id: 'bookmarks', label: 'Bookmarks', icon: Bookmark,
+    href: '/bookmarks', solo: true,
+  },
+  {
+    id: 'starred', label: 'Starred', icon: Star,
+    href: '/starred', solo: true,
+  },
+  {
+    id: 'dashboards', label: 'Dashboards', icon: LayoutDashboard,
+    href: '/dashboards',
     children: [
-      { id: 'dashboards-list', label: 'Browse',      href: '/dashboards' },
-      { id: 'dashboards-new',  label: 'New dashboard', href: '/dashboards/new' },
-      { id: 'dashboards-playlists', label: 'Playlists', href: '/dashboards/playlists' },
-      { id: 'dashboards-snapshots', label: 'Snapshots', href: '/dashboards/snapshots' },
+      { id: 'dash-browse', label: 'Browse',        href: '/dashboards' },
+      { id: 'dash-new',    label: 'New dashboard', href: '/dashboards/new' },
+      { id: 'dash-import', label: 'Import',        href: '/dashboards/import' },
     ],
   },
-  { id: 'explore', label: 'Explore', icon: Compass, href: '/explore' },
   {
-    id: 'drilldown', label: 'Drilldown', icon: TrendingUp, href: '/drilldown',
-    collapsible: true,
+    id: 'explore', label: 'Explore', icon: Compass,
+    href: '/metrics', solo: true,
+  },
+  {
+    id: 'drilldown', label: 'Drilldown', icon: BarChart3,
+    href: '/drilldown',
     children: [
-      { id: 'metrics',  label: 'Metrics',  href: '/metrics' },
-      { id: 'logs',     label: 'Logs',     href: '/logs' },
-      { id: 'traces',   label: 'Traces',   href: '/traces' },
-      { id: 'profiles', label: 'Profiles', href: '/profiles' },
+      { id: 'drill-metrics', label: 'Metrics', href: '/metrics' },
+      { id: 'drill-logs',    label: 'Logs',    href: '/logs' },
+      { id: 'drill-traces',  label: 'Traces',  href: '/traces' },
+      { id: 'drill-devices', label: 'Devices', href: '/devices' },
+    ],
+  },
+  {
+    id: 'alerting', label: 'Alerting', icon: Bell,
+    href: '/alerts',
+    children: [
+      { id: 'alert-rules',    label: 'Alert rules',    href: '/alerts' },
+      { id: 'alert-contact',  label: 'Contact points', href: '/alerts/contacts' },
+      { id: 'alert-silences', label: 'Silences',       href: '/alerts/silences' },
+      { id: 'alert-irm',      label: 'IRM',            href: '/alerts/irm' },
+    ],
+  },
+  {
+    id: 'connections', label: 'Connections', icon: Database,
+    href: '/datasources',
+    children: [
+      { id: 'conn-sources',  label: 'Data sources',       href: '/datasources' },
+      { id: 'conn-add',      label: 'Add new connection', href: '/plugins' },
+    ],
+  },
+  {
+    id: 'admin', label: 'Administration', icon: Settings,
+    href: '/settings',
+    children: [
+      { id: 'admin-users',    label: 'Users',          href: '/team' },
+      { id: 'admin-access',   label: 'Access control', href: '/access' },
+      { id: 'admin-plugins',  label: 'Plugins',        href: '/plugins' },
+      { id: 'admin-api',      label: 'API keys',       href: '/api-explorer' },
+      { id: 'admin-settings', label: 'Settings',       href: '/settings' },
     ],
   },
 ];
 
-const BOTTOM_ITEMS: NavItem[] = [
-  {
-    id: 'alerting', label: 'Alerting', icon: Bell, href: '/alerts',
-    collapsible: true,
-    children: [
-      { id: 'alert-rules',        label: 'Alert rules',         href: '/alerts' },
-      { id: 'alert-contact',      label: 'Contact points',      href: '/alerts/contact' },
-      { id: 'alert-policies',     label: 'Notification policies', href: '/alerts/policies' },
-      { id: 'alert-silences',     label: 'Silences',            href: '/alerts/silences' },
-    ],
-  },
-  {
-    id: 'connections', label: 'Connections', icon: Plug, href: '/connections',
-    collapsible: true,
-    children: [
-      { id: 'datasources',     label: 'Data sources',     href: '/datasources' },
-      { id: 'plugins',         label: 'Plugins',          href: '/plugins' },
-      { id: 'conn-connect',    label: 'Connect data',     href: '/connections/connect' },
-    ],
-  },
-  {
-    id: 'admin', label: 'Administration', icon: Shield, href: '/admin',
-    collapsible: true,
-    children: [
-      { id: 'admin-users',  label: 'Users',         href: '/team' },
-      { id: 'admin-teams',  label: 'Teams',         href: '/team/teams' },
-      { id: 'admin-access', label: 'Access control', href: '/access' },
-      { id: 'admin-settings', label: 'Settings',    href: '/settings' },
-    ],
-  },
-];
+/* ── Sub-page context (plugin config etc.) ── */
+function getSubCtx(pathname: string) {
+  if (pathname.startsWith('/plugins/') && pathname !== '/plugins') {
+    const slug = pathname.split('/').pop() ?? '';
+    return {
+      label: slug.replace(/-/g, ' '),
+      parentHref: '/plugins',
+      parentLabel: 'Connections',
+    };
+  }
+  if (pathname.startsWith('/datasources/') && pathname !== '/datasources') {
+    return { label: 'Data source', parentHref: '/datasources', parentLabel: 'Connections' };
+  }
+  return null;
+}
 
+/* ══════════════════════════════════════════════
+   COMPONENT
+══════════════════════════════════════════════ */
 export function Sidebar() {
+  const { collapsed, toggle } = useSidebarStore();
   const { alerts } = useAlertsStore();
   const pathname = usePathname();
+  const router = useRouter();
+  const subCtx = getSubCtx(pathname);
   const firingCount = alerts.filter(a => a.state === 'firing').length;
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  const toggle = (id: string) => setExpanded(p => ({ ...p, [id]: !p[id] }));
+  /* Auto-open sections that contain the active route */
+  const [open, setOpen] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    NAV.forEach(item => {
+      if (item.children?.some(c => pathname === c.href || pathname.startsWith(c.href + '/')))
+        init[item.id] = true;
+    });
+    return init;
+  });
 
-  const renderItem = (item: NavItem) => {
-    const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-    const isOpen = expanded[item.id];
-    const hasChildren = !!item.children?.length;
-    const badge = item.id === 'alerting' && firingCount > 0 ? firingCount : undefined;
+  const toggleSection = (id: string) =>
+    setOpen(p => ({ ...p, [id]: !p[id] }));
 
-    return (
-      <div key={item.id}>
-        {/* Row */}
-        <div
-          onClick={() => (hasChildren || item.collapsible) && toggle(item.id)}
-          className={cn(
-            'flex items-center gap-2 px-2 py-[5px] mx-1 rounded cursor-pointer select-none',
-            'text-[13px] text-[var(--gf-text-secondary)] hover:text-[var(--gf-text)] hover:bg-[var(--gf-hover)] transition-colors',
-            isActive && !hasChildren && 'bg-[var(--gf-active-bg)] text-[var(--gf-text)] font-medium'
-          )}
-        >
-          {/* Icon + label — navigate only if no children */}
-          {hasChildren ? (
-            <>
-              <item.icon size={15} className="shrink-0 opacity-75" />
-              <span className="flex-1 truncate">{item.label}</span>
-            </>
-          ) : (
-            <Link href={item.href} className="flex items-center gap-2 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
-              <item.icon size={15} className="shrink-0 opacity-75" />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          )}
+  const isActive = (href: string) =>
+    href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
 
-          {badge && (
-            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full leading-none">
-              {badge}
-            </span>
-          )}
-          {(hasChildren || item.collapsible) && (
-            <ChevronDown size={12} className={cn('shrink-0 text-[var(--gf-text-muted)] transition-transform duration-150', isOpen && 'rotate-180')} />
-          )}
-        </div>
-
-        {/* Children */}
-        {hasChildren && isOpen && (
-          <div className="ml-[26px] border-l border-[var(--gf-border)] mb-1">
-            {item.children!.map(child => {
-              const childActive = pathname === child.href;
-              return (
-                <Link key={child.id} href={child.href}>
-                  <div className={cn(
-                    'pl-3 pr-2 py-[5px] mx-1 rounded text-[13px] cursor-pointer transition-colors',
-                    childActive
-                      ? 'text-[var(--gf-text)] font-medium bg-[var(--gf-active-bg)]'
-                      : 'text-[var(--gf-text-secondary)] hover:text-[var(--gf-text)] hover:bg-[var(--gf-hover)]'
-                  )}>
-                    {child.label}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
+  const W_OPEN = 240;
+  const W_COLLAPSED = 56;
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-[200px] z-40 flex flex-col bg-[var(--gf-sidebar)] border-r border-[var(--gf-border)]">
+    <motion.aside
+      animate={{ width: collapsed ? W_COLLAPSED : W_OPEN }}
+      transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+      style={{
+        position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 40,
+        display: 'flex', flexDirection: 'column',
+        background: 'var(--sidebar-bg)',
+        borderRight: '1px solid var(--border)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* ── Logo ───────────────────────────────── */}
+      <div style={{
+        height: 56, display: 'flex', alignItems: 'center',
+        padding: collapsed ? '0 12px' : '0 16px',
+        borderBottom: '1px solid var(--border)',
+        flexShrink: 0, gap: 10,
+        justifyContent: collapsed ? 'center' : 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+          {/* Logo mark */}
+          <div style={{
+            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+            background: 'linear-gradient(135deg, #5865f2 0%, #7b8cff 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(88,101,242,0.4)',
+          }}>
+            <Zap size={14} color="#fff" />
+          </div>
 
-      {/* Logo */}
-      <div className="h-[41px] flex items-center gap-2 px-3 border-b border-[var(--gf-border)] shrink-0">
-        <div className="w-6 h-6 rounded bg-gradient-to-br from-orange-400 to-yellow-300 flex items-center justify-center shrink-0">
-          <Zap size={12} className="text-white" />
+          <AnimatePresence>
+            {!collapsed && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.18 }}
+                style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}
+              >
+                <div style={{ lineHeight: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Vizora</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>IoTrenetics Solutions</div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        <span className="font-semibold text-[var(--gf-text)] text-sm tracking-tight">Vizora</span>
-        <button className="ml-auto text-[var(--gf-text-muted)] hover:text-[var(--gf-text)] transition-colors">
-          <PanelLeft size={14} />
+
+        {!collapsed && (
+          <button onClick={toggle} style={{
+            width: 24, height: 24, borderRadius: 6,
+            border: '1px solid var(--border)',
+            background: 'transparent', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--text-muted)', flexShrink: 0,
+            transition: 'all 0.15s',
+          }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--surface-hover)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; }}
+          >
+            <ChevronLeft size={13} />
+          </button>
+        )}
+      </div>
+
+      {/* ── Sub-page back banner ────────────────── */}
+      <AnimatePresence>
+        {subCtx && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            style={{ overflow: 'hidden', flexShrink: 0 }}
+          >
+            <button onClick={() => router.push(subCtx.parentHref)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center',
+                gap: 8, padding: '10px 16px',
+                background: 'var(--accent-soft)',
+                border: 'none', borderBottom: '1px solid var(--border)',
+                cursor: 'pointer', textAlign: 'left',
+              }}>
+              <ArrowLeft size={14} color="var(--accent)" style={{ flexShrink: 0 }} />
+              {!collapsed && (
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Back to {subCtx.parentLabel}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600, textTransform: 'capitalize', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {subCtx.label}
+                  </div>
+                </div>
+              )}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Nav ────────────────────────────────── */}
+      <nav style={{
+        flex: 1, overflowY: 'auto', overflowX: 'hidden',
+        padding: '6px 0',
+        opacity: subCtx ? 0.35 : 1,
+        pointerEvents: subCtx ? 'none' : 'auto',
+        transition: 'opacity 0.2s',
+      }}>
+        {NAV.map((item, idx) => {
+          const Icon = item.icon;
+          const active = isActive(item.href);
+          const isOpen = open[item.id];
+          const hasChildren = !!item.children;
+          const badge = item.id === 'alerting' && firingCount > 0 ? firingCount : null;
+
+          /* ── Separator before Alerting ── */
+          const showSep = item.id === 'alerting' || item.id === 'connections';
+
+          return (
+            <div key={item.id}>
+              {showSep && (
+                <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
+              )}
+
+              {hasChildren ? (
+                /* Expandable section */
+                <div>
+                  <button
+                    onClick={() => !collapsed && toggleSection(item.id)}
+                    title={collapsed ? item.label : undefined}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center',
+                      gap: 10, padding: collapsed ? '9px 0' : '9px 14px',
+                      justifyContent: collapsed ? 'center' : 'flex-start',
+                      background: active && !isOpen ? 'var(--sidebar-item-active-bg)' : 'transparent',
+                      border: 'none', cursor: 'pointer',
+                      color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      position: 'relative', transition: 'all 0.12s',
+                    }}
+                    onMouseEnter={e => { if (!active || isOpen) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
+                    onMouseLeave={e => { if (!active || isOpen) (e.currentTarget as HTMLElement).style.background = active && !isOpen ? 'var(--sidebar-item-active-bg)' : 'transparent'; (e.currentTarget as HTMLElement).style.color = active ? 'var(--text-primary)' : 'var(--text-secondary)'; }}
+                  >
+                    {/* Active bar */}
+                    {active && !isOpen && (
+                      <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, background: 'var(--accent)', borderRadius: '0 3px 3px 0' }} />
+                    )}
+
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <Icon size={17} />
+                      {badge && (
+                        <div style={{ position: 'absolute', top: -5, right: -6, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--red)', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                          {badge}
+                        </div>
+                      )}
+                    </div>
+
+                    {!collapsed && (
+                      <>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 500 : 400, textAlign: 'left' }}>{item.label}</span>
+                        <ChevronDown size={13} style={{ flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--text-muted)' }} />
+                      </>
+                    )}
+
+                    {/* Collapsed tooltip */}
+                    {collapsed && (
+                      <div style={{
+                        position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
+                        marginLeft: 8, padding: '4px 10px', borderRadius: 6,
+                        background: 'var(--surface-3)', border: '1px solid var(--border)',
+                        color: 'var(--text-primary)', fontSize: 12, fontWeight: 500,
+                        whiteSpace: 'nowrap', pointerEvents: 'none',
+                        opacity: 0, transition: 'opacity 0.15s',
+                        zIndex: 100,
+                      }} className="sidebar-tooltip">
+                        {item.label}
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Children */}
+                  <AnimatePresence initial={false}>
+                    {isOpen && !collapsed && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        {item.children!.map(child => {
+                          const childActive = pathname === child.href || pathname.startsWith(child.href + '/');
+                          return (
+                            <Link key={child.id} href={child.href} style={{ textDecoration: 'none' }}>
+                              <div style={{
+                                display: 'flex', alignItems: 'center',
+                                padding: '7px 14px 7px 41px',
+                                color: childActive ? 'var(--accent)' : 'var(--text-secondary)',
+                                background: childActive ? 'var(--accent-soft)' : 'transparent',
+                                fontSize: 13, cursor: 'pointer',
+                                position: 'relative', transition: 'all 0.12s',
+                              }}
+                                onMouseEnter={e => { if (!childActive) { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; } }}
+                                onMouseLeave={e => { if (!childActive) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; } }}
+                              >
+                                {childActive && (
+                                  <div style={{ position: 'absolute', left: 0, top: '15%', bottom: '15%', width: 3, background: 'var(--accent)', borderRadius: '0 3px 3px 0' }} />
+                                )}
+                                <span style={{ fontWeight: childActive ? 500 : 400 }}>{child.label}</span>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                /* Simple link */
+                <Link href={item.href} style={{ textDecoration: 'none' }}>
+                  <div
+                    title={collapsed ? item.label : undefined}
+                    style={{
+                      display: 'flex', alignItems: 'center',
+                      gap: 10, padding: collapsed ? '9px 0' : '9px 14px',
+                      justifyContent: collapsed ? 'center' : 'flex-start',
+                      background: active ? 'var(--sidebar-item-active-bg)' : 'transparent',
+                      color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      position: 'relative', cursor: 'pointer', transition: 'all 0.12s',
+                    }}
+                    onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; } }}
+                    onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; } }}
+                  >
+                    {active && (
+                      <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, background: 'var(--accent)', borderRadius: '0 3px 3px 0' }} />
+                    )}
+                    <Icon size={17} style={{ flexShrink: 0 }} />
+                    {!collapsed && (
+                      <span style={{ fontSize: 13, fontWeight: active ? 500 : 400 }}>{item.label}</span>
+                    )}
+                  </div>
+                </Link>
+              )}
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* ── Bottom status + collapse ─────────────── */}
+      <div style={{ borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+        {/* Live status */}
+        {!collapsed && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px' }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', animation: 'pulse-dot 2s ease-in-out infinite', flexShrink: 0 }} />
+            <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 500 }}>Connected · Live</span>
+          </div>
+        )}
+
+        {/* Collapse toggle */}
+        <button onClick={toggle} style={{
+          width: '100%', display: 'flex', alignItems: 'center',
+          gap: 8, padding: collapsed ? '10px 0' : '8px 16px',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          color: 'var(--text-muted)', fontSize: 12,
+          borderTop: collapsed ? 'none' : '1px solid var(--border)',
+          transition: 'all 0.12s',
+        }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; }}
+        >
+          {collapsed ? <ChevronRight size={15} /> : <><ChevronLeft size={14} /><span>Collapse</span></>}
         </button>
       </div>
 
-      {/* Main nav */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2 space-y-0.5 scrollbar-thin">
-        {TOP_ITEMS.map(renderItem)}
-      </nav>
-
-      {/* Bottom nav */}
-      <div className="border-t border-[var(--gf-border)] py-2 space-y-0.5">
-        {BOTTOM_ITEMS.map(renderItem)}
-      </div>
-
-    </aside>
+      {/* Tooltip hover CSS */}
+      <style>{`
+        button:hover .sidebar-tooltip,
+        a:hover .sidebar-tooltip { opacity: 1 !important; }
+      `}</style>
+    </motion.aside>
   );
 }
