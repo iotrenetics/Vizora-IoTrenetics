@@ -182,3 +182,5 @@ export const useTimeRangeStore = create<TimeRangeStore>((set) => ({
   to: 'now',
   setRange: (from, to) => set({ from, to }),
 }));
+
+export { useDataSourcesStore } from './datasources';
