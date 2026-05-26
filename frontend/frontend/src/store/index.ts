@@ -183,4 +183,33 @@ export const useTimeRangeStore = create<TimeRangeStore>((set) => ({
   setRange: (from, to) => set({ from, to }),
 }));
 
+// ── Auth Store ───────────────────────────────
+interface AuthState {
+  isLoggedIn:  boolean;
+  username:    string;
+  displayName: string;
+  login:       (username: string) => void;
+  logout:      () => void;
+}
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      isLoggedIn:  false,
+      username:    '',
+      displayName: '',
+      login: (username: string) =>
+        set({
+          isLoggedIn:  true,
+          username,
+          displayName: username.charAt(0).toUpperCase() + username.slice(1),
+        }),
+      logout: () =>
+        set({ isLoggedIn: false, username: '', displayName: '' }),
+    }),
+    { name: 'vizora-auth' }
+  )
+);
+
+// ── Re-exports ───────────────────────────────
 export { useDataSourcesStore } from './datasources';
