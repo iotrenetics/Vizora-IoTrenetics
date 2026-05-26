@@ -3,13 +3,12 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   Home, Bookmark, Star, LayoutDashboard, Compass,
-  BarChart3, Bell, Database, Settings, Zap,
+  BarChart3, Bell, Database, Settings,
   ChevronDown, ChevronRight, ChevronLeft,
-  Activity, ScrollText, GitMerge, Users,
-  Shield, Puzzle, GitBranch, Cpu, ArrowLeft,
-  Wifi, TrendingUp,
+  ArrowLeft,
 } from 'lucide-react';
 import { useSidebarStore, useAlertsStore } from '@/store';
 
@@ -66,8 +65,8 @@ const NAV = [
     id: 'connections', label: 'Connections', icon: Database,
     href: '/datasources',
     children: [
-      { id: 'conn-sources',  label: 'Data sources',       href: '/datasources' },
-      { id: 'conn-add',      label: 'Add new connection', href: '/plugins' },
+      { id: 'conn-sources', label: 'Data sources',       href: '/datasources' },
+      { id: 'conn-add',     label: 'Add new connection', href: '/plugins' },
     ],
   },
   {
@@ -104,11 +103,11 @@ function getSubCtx(pathname: string) {
 ══════════════════════════════════════════════ */
 export function Sidebar() {
   const { collapsed, toggle } = useSidebarStore();
-  const { alerts } = useAlertsStore();
-  const pathname = usePathname();
-  const router = useRouter();
-  const subCtx = getSubCtx(pathname);
-  const firingCount = alerts.filter(a => a.state === 'firing').length;
+  const { alerts }            = useAlertsStore();
+  const pathname              = usePathname();
+  const router                = useRouter();
+  const subCtx                = getSubCtx(pathname);
+  const firingCount           = alerts.filter(a => a.state === 'firing').length;
 
   /* Auto-open sections that contain the active route */
   const [open, setOpen] = useState<Record<string, boolean>>(() => {
@@ -126,7 +125,7 @@ export function Sidebar() {
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
 
-  const W_OPEN = 240;
+  const W_OPEN      = 240;
   const W_COLLAPSED = 56;
 
   return (
@@ -141,24 +140,28 @@ export function Sidebar() {
         overflow: 'hidden',
       }}
     >
+
       {/* ── Logo ───────────────────────────────── */}
       <div style={{
-        height: 56, display: 'flex', alignItems: 'center',
-        padding: collapsed ? '0 12px' : '0 16px',
+        height: 56,
+        display: 'flex', alignItems: 'center',
+        padding: collapsed ? '0 14px' : '0 14px 0 12px',
         borderBottom: '1px solid var(--border)',
-        flexShrink: 0, gap: 10,
+        flexShrink: 0,
         justifyContent: collapsed ? 'center' : 'space-between',
+        gap: 10,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
-          {/* Logo mark */}
-          <div style={{
-            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-            background: 'linear-gradient(135deg, #5865f2 0%, #7b8cff 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(88,101,242,0.4)',
-          }}>
-            <Zap size={14} color="#fff" />
-          </div>
+
+        {/* Logo image + wordmark */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden', minWidth: 0 }}>
+          <Image
+            src="/vizora-logo.png"
+            alt="Vizora Logo"
+            width={28}
+            height={28}
+            style={{ flexShrink: 0, borderRadius: Math.round(28 * 0.25) }}
+            priority
+          />
 
           <AnimatePresence>
             {!collapsed && (
@@ -169,26 +172,48 @@ export function Sidebar() {
                 transition={{ duration: 0.18 }}
                 style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}
               >
-                <div style={{ lineHeight: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Vizora</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>IoTrenetics Solutions</div>
+                <div style={{ lineHeight: 1.15 }}>
+                  <div style={{
+                    fontSize: 15, fontWeight: 800,
+                    color: 'var(--text-primary)',
+                    letterSpacing: '-0.03em',
+                    fontFamily: 'inherit',
+                  }}>
+                    Vizora
+                  </div>
+                  <div style={{
+                    fontSize: 10, color: 'var(--text-muted)',
+                    marginTop: 1, letterSpacing: '0.01em',
+                  }}>
+                    IoTrenetics Solutions
+                  </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
+        {/* Collapse chevron — only visible when expanded */}
         {!collapsed && (
-          <button onClick={toggle} style={{
-            width: 24, height: 24, borderRadius: 6,
-            border: '1px solid var(--border)',
-            background: 'transparent', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--text-muted)', flexShrink: 0,
-            transition: 'all 0.15s',
-          }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--surface-hover)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; }}
+          <button
+            onClick={toggle}
+            title="Collapse sidebar"
+            style={{
+              width: 24, height: 24, borderRadius: 6,
+              border: '1px solid var(--border)',
+              background: 'transparent', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-muted)', flexShrink: 0,
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = 'var(--surface-hover)';
+              (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = 'transparent';
+              (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
+            }}
           >
             <ChevronLeft size={13} />
           </button>
@@ -204,21 +229,30 @@ export function Sidebar() {
             exit={{ height: 0, opacity: 0 }}
             style={{ overflow: 'hidden', flexShrink: 0 }}
           >
-            <button onClick={() => router.push(subCtx.parentHref)}
+            <button
+              onClick={() => router.push(subCtx.parentHref)}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center',
                 gap: 8, padding: '10px 16px',
                 background: 'var(--accent-soft)',
                 border: 'none', borderBottom: '1px solid var(--border)',
                 cursor: 'pointer', textAlign: 'left',
-              }}>
+              }}
+            >
               <ArrowLeft size={14} color="var(--accent)" style={{ flexShrink: 0 }} />
               {!collapsed && (
                 <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <div style={{
+                    fontSize: 10, color: 'var(--accent)', fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.06em',
+                  }}>
                     Back to {subCtx.parentLabel}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600, textTransform: 'capitalize', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{
+                    fontSize: 12, color: 'var(--text-primary)', fontWeight: 600,
+                    textTransform: 'capitalize', marginTop: 1,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
                     {subCtx.label}
                   </div>
                 </div>
@@ -236,15 +270,13 @@ export function Sidebar() {
         pointerEvents: subCtx ? 'none' : 'auto',
         transition: 'opacity 0.2s',
       }}>
-        {NAV.map((item, idx) => {
-          const Icon = item.icon;
-          const active = isActive(item.href);
-          const isOpen = open[item.id];
+        {NAV.map(item => {
+          const Icon        = item.icon;
+          const active      = isActive(item.href);
+          const isOpen      = open[item.id];
           const hasChildren = !!item.children;
-          const badge = item.id === 'alerting' && firingCount > 0 ? firingCount : null;
-
-          /* ── Separator before Alerting ── */
-          const showSep = item.id === 'alerting' || item.id === 'connections';
+          const badge       = item.id === 'alerting' && firingCount > 0 ? firingCount : null;
+          const showSep     = item.id === 'alerting' || item.id === 'connections';
 
           return (
             <div key={item.id}>
@@ -253,7 +285,7 @@ export function Sidebar() {
               )}
 
               {hasChildren ? (
-                /* Expandable section */
+                /* ── Expandable section ── */
                 <div>
                   <button
                     onClick={() => !collapsed && toggleSection(item.id)}
@@ -267,10 +299,15 @@ export function Sidebar() {
                       color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                       position: 'relative', transition: 'all 0.12s',
                     }}
-                    onMouseEnter={e => { if (!active || isOpen) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
-                    onMouseLeave={e => { if (!active || isOpen) (e.currentTarget as HTMLElement).style.background = active && !isOpen ? 'var(--sidebar-item-active-bg)' : 'transparent'; (e.currentTarget as HTMLElement).style.color = active ? 'var(--text-primary)' : 'var(--text-secondary)'; }}
+                    onMouseEnter={e => {
+                      if (!active || isOpen) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)';
+                      (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)';
+                    }}
+                    onMouseLeave={e => {
+                      if (!active || isOpen) (e.currentTarget as HTMLElement).style.background = active && !isOpen ? 'var(--sidebar-item-active-bg)' : 'transparent';
+                      (e.currentTarget as HTMLElement).style.color = active ? 'var(--text-primary)' : 'var(--text-secondary)';
+                    }}
                   >
-                    {/* Active bar */}
                     {active && !isOpen && (
                       <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, background: 'var(--accent)', borderRadius: '0 3px 3px 0' }} />
                     )}
@@ -278,7 +315,14 @@ export function Sidebar() {
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <Icon size={17} />
                       {badge && (
-                        <div style={{ position: 'absolute', top: -5, right: -6, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--red)', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                        <div style={{
+                          position: 'absolute', top: -5, right: -6,
+                          minWidth: 16, height: 16, borderRadius: 8,
+                          background: 'var(--red)', color: '#fff',
+                          fontSize: 9, fontWeight: 700,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          padding: '0 3px',
+                        }}>
                           {badge}
                         </div>
                       )}
@@ -286,21 +330,28 @@ export function Sidebar() {
 
                     {!collapsed && (
                       <>
-                        <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 500 : 400, textAlign: 'left' }}>{item.label}</span>
-                        <ChevronDown size={13} style={{ flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--text-muted)' }} />
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 500 : 400, textAlign: 'left' }}>
+                          {item.label}
+                        </span>
+                        <ChevronDown size={13} style={{
+                          flexShrink: 0,
+                          transform: isOpen ? 'rotate(180deg)' : 'none',
+                          transition: 'transform 0.2s',
+                          color: 'var(--text-muted)',
+                        }} />
                       </>
                     )}
 
                     {/* Collapsed tooltip */}
                     {collapsed && (
                       <div style={{
-                        position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
+                        position: 'absolute', left: '100%', top: '50%',
+                        transform: 'translateY(-50%)',
                         marginLeft: 8, padding: '4px 10px', borderRadius: 6,
                         background: 'var(--surface-3)', border: '1px solid var(--border)',
                         color: 'var(--text-primary)', fontSize: 12, fontWeight: 500,
                         whiteSpace: 'nowrap', pointerEvents: 'none',
-                        opacity: 0, transition: 'opacity 0.15s',
-                        zIndex: 100,
+                        opacity: 0, transition: 'opacity 0.15s', zIndex: 100,
                       }} className="sidebar-tooltip">
                         {item.label}
                       </div>
@@ -321,16 +372,27 @@ export function Sidebar() {
                           const childActive = pathname === child.href || pathname.startsWith(child.href + '/');
                           return (
                             <Link key={child.id} href={child.href} style={{ textDecoration: 'none' }}>
-                              <div style={{
-                                display: 'flex', alignItems: 'center',
-                                padding: '7px 14px 7px 41px',
-                                color: childActive ? 'var(--accent)' : 'var(--text-secondary)',
-                                background: childActive ? 'var(--accent-soft)' : 'transparent',
-                                fontSize: 13, cursor: 'pointer',
-                                position: 'relative', transition: 'all 0.12s',
-                              }}
-                                onMouseEnter={e => { if (!childActive) { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; } }}
-                                onMouseLeave={e => { if (!childActive) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; } }}
+                              <div
+                                style={{
+                                  display: 'flex', alignItems: 'center',
+                                  padding: '7px 14px 7px 41px',
+                                  color: childActive ? 'var(--accent)' : 'var(--text-secondary)',
+                                  background: childActive ? 'var(--accent-soft)' : 'transparent',
+                                  fontSize: 13, cursor: 'pointer',
+                                  position: 'relative', transition: 'all 0.12s',
+                                }}
+                                onMouseEnter={e => {
+                                  if (!childActive) {
+                                    (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)';
+                                    (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)';
+                                  }
+                                }}
+                                onMouseLeave={e => {
+                                  if (!childActive) {
+                                    (e.currentTarget as HTMLElement).style.background = 'transparent';
+                                    (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)';
+                                  }
+                                }}
                               >
                                 {childActive && (
                                   <div style={{ position: 'absolute', left: 0, top: '15%', bottom: '15%', width: 3, background: 'var(--accent)', borderRadius: '0 3px 3px 0' }} />
@@ -345,7 +407,7 @@ export function Sidebar() {
                   </AnimatePresence>
                 </div>
               ) : (
-                /* Simple link */
+                /* ── Simple link ── */
                 <Link href={item.href} style={{ textDecoration: 'none' }}>
                   <div
                     title={collapsed ? item.label : undefined}
@@ -357,8 +419,18 @@ export function Sidebar() {
                       color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                       position: 'relative', cursor: 'pointer', transition: 'all 0.12s',
                     }}
-                    onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; } }}
-                    onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; } }}
+                    onMouseEnter={e => {
+                      if (!active) {
+                        (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)';
+                        (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!active) {
+                        (e.currentTarget as HTMLElement).style.background = 'transparent';
+                        (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)';
+                      }
+                    }}
                   >
                     {active && (
                       <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, background: 'var(--accent)', borderRadius: '0 3px 3px 0' }} />
@@ -375,30 +447,47 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* ── Bottom status + collapse ─────────────── */}
+      {/* ── Bottom: live status + expand toggle ─── */}
       <div style={{ borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-        {/* Live status */}
         {!collapsed && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px' }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', animation: 'pulse-dot 2s ease-in-out infinite', flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 500 }}>Connected · Live</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px' }}>
+            <div style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: 'var(--green)',
+              animation: 'pulse-dot 2s ease-in-out infinite',
+              flexShrink: 0,
+            }} />
+            <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 500 }}>
+              Connected · Live
+            </span>
           </div>
         )}
 
-        {/* Collapse toggle */}
-        <button onClick={toggle} style={{
-          width: '100%', display: 'flex', alignItems: 'center',
-          gap: 8, padding: collapsed ? '10px 0' : '8px 16px',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          background: 'transparent', border: 'none', cursor: 'pointer',
-          color: 'var(--text-muted)', fontSize: 12,
-          borderTop: collapsed ? 'none' : '1px solid var(--border)',
-          transition: 'all 0.12s',
-        }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; }}
+        <button
+          onClick={toggle}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center',
+            gap: 8, padding: collapsed ? '10px 0' : '8px 14px',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'var(--text-muted)', fontSize: 12,
+            borderTop: collapsed ? 'none' : '1px solid var(--border)',
+            transition: 'all 0.12s', fontFamily: 'inherit',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover-bg)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.background = 'transparent';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
+          }}
         >
-          {collapsed ? <ChevronRight size={15} /> : <><ChevronLeft size={14} /><span>Collapse</span></>}
+          {collapsed
+            ? <ChevronRight size={15} />
+            : <><ChevronLeft size={14} /><span>Collapse</span></>
+          }
         </button>
       </div>
 
